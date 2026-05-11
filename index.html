@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For My Malkin ❤️</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Plus+Jakarta+Sans:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --p: #ff2d55; --s: #ffb703; --dark: #080707; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--dark); color: white; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        /* --- 1. Background System --- */
+        .viewport { position: fixed; inset: 0; z-index: -2; background: #000; }
+        .aurora {
+            position: absolute; width: 200%; height: 200%; top: -50%; left: -50%;
+            background: radial-gradient(circle at 20% 30%, hsla(333,70%,55%,.4), transparent 40%),
+                        radial-gradient(circle at 80% 70%, hsla(282, 82%, 54%, .3), transparent 40%),
+                        radial-gradient(circle at 40% 80%, hsla(210, 89%, 60%, .3), transparent 40%),
+                        radial-gradient(circle at 70% 20%, hsla(35, 90%, 60%, .3), transparent 40%);
+            filter: blur(100px); animation: aurora-drift 25s infinite alternate linear;
+        }
+        @keyframes aurora-drift { from { transform: rotate(0deg); } to { transform: rotate(15deg); } }
+        #canvas-3d { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+
+        /* --- 2. Step System --- */
+        section { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transform: scale(1.05); transition: 0.8s all cubic-bezier(0.2, 1, 0.3, 1); }
+        section.active { opacity: 1; visibility: visible; transform: scale(1); }
+
+        .glass { background: rgba(18, 16, 16, 0.6); backdrop-filter: blur(40px) saturate(160%); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 40px; padding: 2rem; width: 92%; max-width: 500px; box-shadow: 0 40px 100px rgba(0,0,0,0.8); position: relative; }
+        .serif { font-family: 'Playfair Display', serif; background: linear-gradient(135deg, #fff 40%, var(--p) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* --- 3. Image Safety Frame --- */
+        .img-frame { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 24px; overflow: hidden; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; position: relative; }
+        .img-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        /* --- 4. Buttons --- */
+        .btn-main { background: linear-gradient(135deg, var(--p), #c9184a); color: white; font-weight: 700; padding: 1.2rem 3rem; border-radius: 99px; transition: 0.3s; box-shadow: 0 10px 25px rgba(255, 45, 85, 0.3); }
+        .btn-main:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 20px 40px rgba(255, 45, 85, 0.5); }
+
+        /* --- 5. Games Mechanics --- */
+        #heart-field { width: 100%; height: 280px; background: rgba(0,0,0,0.4); border-radius: 20px; position: relative; overflow: hidden; margin-bottom: 1rem; }
+        .moving-heart { position: absolute; font-size: 2.2rem; cursor: pointer; user-select: none; filter: drop-shadow(0 0 10px var(--p)); transition: transform 0.1s; }
+        
+        /* Vertical Race */
+        .road { width: 100%; height: 350px; background: #1a1a1a; border-radius: 20px; position: relative; overflow: hidden; display: flex; border: 4px solid #333; margin-bottom: 1rem; }
+        .lane { width: 50%; height: 100%; border-right: 2px dashed rgba(255,255,255,0.1); position: relative; }
+        .finish-line { position: absolute; top: 20px; left: 0; right: 0; height: 10px; background: repeating-linear-gradient(90deg, #fff, #fff 10px, #000 10px, #000 20px); }
+        .car-v { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 2.5rem; transition: bottom 0.1s linear; filter: drop-shadow(0 0 15px var(--p)); }
+
+        .overlay-card { position: absolute; inset: 0; background: rgba(0,0,0,0.9); border-radius: 40px; z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
+
+        .progress-bar { position: fixed; top: 0; left: 0; height: 4px; background: var(--p); z-index: 200; box-shadow: 0 0 15px var(--p); transition: 0.5s width; }
+    </style>
+</head>
+<body>
+
+    <div class="viewport"><div class="aurora"></div></div>
+    <canvas id="canvas-3d"></canvas>
+    <div class="progress-bar" id="p-bar" style="width: 10%;"></div>
+
+    <!-- STAGE 1: INTRO (Img 8) -->
+    <section id="s1" class="active">
+        <div class="glass text-center">
+            <div class="img-frame"><img src="8.jpg"></div>
+            <div class="text-4xl mb-4 animate-bounce">❤️</div>
+            <h1 class="serif text-4xl mb-4">Alabuuuu Malkinnn</h1>
+            <p class="text-gray-400 text-sm mb-8">I built this little cinematic universe just for you. Every second was worth seeing you smile!!! alabuuu.</p>
+            <button onclick="next(2)" class="btn-main">click kro</button>
+        </div>
+    </section>
+
+    <!-- STAGE 2: MESSAGE (Img 2) -->
+    <section id="s2">
+        <div class="glass text-center">
+            <div class="img-frame"><img src="2.jpg"></div>
+            <h2 class="serif text-3xl mb-4">I love You Malkinnnnnnnn</h2>
+            <p class="text-xs text-gray-400 italic mb-8">I'm really blessed to have you in my life... You're the best person I've ever met.</p>
+            <button onclick="next(3)" class="btn-main">There's more...</button>
+        </div>
+    </section>
+
+    <!-- STAGE 3: BENTO (Img 3, 4, 10) -->
+    <section id="s3">
+        <div class="glass">
+            <h2 class="serif text-2xl text-center mb-6">A Few Things I Adore</h2>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-black/40 p-1 rounded-xl"><img src="3.jpg" class="h-28 w-full object-contain"></div>
+                <div class="bg-black/40 p-1 rounded-xl"><img src="4.jpg" class="h-28 w-full object-contain"></div>
+                <div class="col-span-2 bg-black/40 p-1 rounded-xl"><img src="10.jpg" class="h-40 w-full object-contain"></div>
+            </div>
+            <p class="text-center text-[10px] text-gray-500 italic mb-6">"The way you make my mother happy... You're the best."</p>
+            <button onclick="next(4)" class="btn-main w-full">Remember this?</button>
+        </div>
+    </section>
+
+    <!-- STAGE 4: QUOTES (Img 7) -->
+    <section id="s4">
+        <div class="glass text-center">
+            <div class="img-frame"><img src="7.jpg"></div>
+            <div id="quote-box" class="h-16 text-gray-300 italic mb-8">"Click the button to see how much I adore you."</div>
+            <button onclick="changeQuote()" class="btn-main bg-white/10 text-white border border-white/20 px-8 py-2">Press for Love</button>
+            <button onclick="next(5)" class="block mx-auto mt-10 text-[10px] text-gray-500 uppercase tracking-widest">Next Chapter</button>
+        </div>
+    </section>
+
+    <!-- STAGE 5: MEMORY (Img 1, 11) -->
+    <section id="s5">
+        <div class="glass text-center">
+            <div class="flex gap-2 mb-6">
+                <div class="w-1/2 bg-black/40 p-2 rounded-2xl"><img src="1.jpg" class="h-64 w-full object-contain"></div>
+                <div class="w-1/2 bg-black/40 p-2 rounded-2xl"><img src="11.jpg" class="h-64 w-full object-contain"></div>
+            </div>
+            <p class="text-xs text-gray-400 italic">Every moment with you feels like a movie. Saiyaraaaaaa.</p>
+            <button onclick="next(6)" class="btn-main mt-8">Game Time!</button>
+        </div>
+    </section>
+
+    <!-- STAGE 6: HEART GAME -->
+    <section id="s6">
+        <div class="glass text-center relative">
+            <h2 class="serif text-2xl mb-2">Catch the Love!</h2>
+            <p class="text-[11px] text-gray-500 mb-4">Try catching at least 7 hearts in 10s!</p>
+            <div id="heart-field"></div>
+            <div class="flex justify-between text-pink-500 font-bold px-2">
+                <span id="h-score">Score: 0/7</span>
+                <span id="h-timer">Time: 10s</span>
+            </div>
+
+            <!-- Victory Card -->
+            <div id="heart-win" class="overlay-card">
+                <div class="text-5xl mb-4">🏆</div>
+                <h3 class="serif text-3xl mb-4">Victory!</h3>
+                <p class="text-gray-400 mb-8">You are too fast for these hearts beibiii!</p>
+                <button onclick="next(7)" class="btn-main">Next Game</button>
+            </div>
+
+            <!-- Lose Card -->
+            <div id="heart-lose" class="overlay-card">
+                <h3 class="text-2xl font-bold text-red-500 mb-4">Too Slow!</h3>
+                <p class="text-gray-400 mb-8">You missed the love. Try again?</p>
+                <button onclick="startHeartGame()" class="btn-main">Restart Game</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- STAGE 7: VERTICAL RACE -->
+    <section id="s7">
+        <div class="glass text-center relative">
+            <h2 class="serif text-2xl mb-2">Race with Rishuuu!</h2>
+            <p class="text-[11px] text-gray-500 mb-6 uppercase">Tap Tap as fast as you can! (Attempt: <span id="r-attempt">1</span>)</p>
+            
+            <div class="road">
+                <div class="finish-line"></div>
+                <div class="lane"><div id="bot-v" class="car-v">🏎️</div><span class="absolute top-2 left-2 text-[8px] opacity-40">RISHUUU</span></div>
+                <div class="lane"><div id="player-v" class="car-v" style="filter: hue-rotate(280deg);">🏎️</div><span class="absolute top-2 left-2 text-[8px] opacity-40">YOU</span></div>
+            </div>
+
+            <button onmousedown="raceTap()" class="w-full py-6 btn-main text-2xl">TAP TAP! ⛽</button>
+
+            <!-- Pride Card -->
+            <div id="race-win" class="overlay-card">
+                <img src="9.jpg" class="w-24 h-24 rounded-full border-4 border-pink-500 object-cover mb-4">
+                <h3 class="serif text-2xl mb-4">I'm proud of you beibiii! 💖</h3>
+                <p class="text-sm text-gray-400 mb-8">You finally beat the pro racer!</p>
+                <button onclick="next(8)" class="btn-main">Final Surprise</button>
+            </div>
+
+            <!-- Lose Card -->
+            <div id="race-lose" class="overlay-card">
+                <h3 class="text-2xl font-bold text-red-500 mb-4">Rishuuu Won!</h3>
+                <p class="text-gray-400 mb-8">He's way too fast... try again!</p>
+                <button onclick="resetRace()" class="btn-main">Retry Race</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- STAGE 8: FINALE (Img 6, 12, 9) -->
+    <section id="s8">
+        <div class="glass text-center">
+            <div class="flex justify-center -space-x-4 mb-8">
+                <img src="6.jpg" class="w-24 h-24 rounded-full border-2 border-black object-cover">
+                <img src="12.jpg" class="w-24 h-24 rounded-full border-2 border-black object-cover">
+                <img src="9.jpg" class="w-24 h-24 rounded-full border-2 border-black object-cover">
+            </div>
+            <h2 class="serif text-xl mb-4">I'm sorry for being messy...</h2>
+            <p class="text-[11px] text-gray-400 mb-8 px-4 leading-relaxed">It's just to let uk that I love everything about you... its just me sometimes messing things around but with you everything will be alright ik!!! Ily.</p>
+            <div id="finale-txt" class="hidden text-3xl font-bold text-pink-500 mb-8 scale-0 animate-pulse">I love youuuuuu malkinnnnnnnn ❤️</div>
+            <button id="fin-btn" onclick="celebrate()" class="btn-main">Celebrate!</button>
+        </div>
+    </section>
+
+    <script>
+        // --- Sound Engine ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSfx(f, t, d) {
+            const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+            o.type = t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
+            g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+d);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(); o.stop(audioCtx.currentTime+d);
+        }
+
+        // --- Navigation ---
+        let step = 1;
+        function next(s) {
+            playSfx(440, 'sine', 0.1);
+            document.getElementById('s'+step).classList.remove('active');
+            document.getElementById('s'+s).classList.add('active');
+            document.getElementById('p-bar').style.width = (s * 12.5) + '%';
+            step = s;
+            if(s === 6) startHeartGame();
+        }
+
+        // --- Quotes ---
+        const quotes = ["You are my safe place.", "Your smile is my favorite scene.", "I love you exactly as you are.", "Lucky to have you in my life.", "You make every day better."];
+        function changeQuote() {
+            playSfx(600, 'triangle', 0.2);
+            const b = document.getElementById('quote-box');
+            gsap.to(b, { opacity: 0, y: -10, onComplete: () => {
+                b.innerText = `"${quotes[Math.floor(Math.random()*quotes.length)]}"`;
+                gsap.to(b, { opacity: 1, y: 0 });
+            }});
+        }
+
+        // --- Heart Game ---
+        let caught = 0; let timeLeft = 10; let gameTimer;
+        function startHeartGame() {
+            caught = 0; timeLeft = 10;
+            document.getElementById('heart-win').style.display = 'none';
+            document.getElementById('heart-lose').style.display = 'none';
+            document.getElementById('h-score').innerText = `Score: 0/7`;
+            const field = document.getElementById('heart-field');
+            field.innerHTML = '';
+            
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('h-timer').innerText = `Time: ${timeLeft}s`;
+                if(timeLeft <= 0) {
+                    clearInterval(gameTimer);
+                    if(caught < 7) document.getElementById('heart-lose').style.display = 'flex';
+                }
+            }, 1000);
+
+            const spawn = setInterval(() => {
+                if(timeLeft <= 0 || step !== 6) { clearInterval(spawn); return; }
+                const h = document.createElement('div');
+                h.className = 'moving-heart'; h.innerHTML = '❤️';
+                h.style.left = Math.random()*85 + '%'; h.style.top = Math.random()*80 + '%';
+                h.onclick = () => {
+                    caught++; playSfx(880, 'sine', 0.05);
+                    document.getElementById('h-score').innerText = `Score: ${caught}/7`;
+                    h.remove();
+                    if(caught >= 7) { clearInterval(gameTimer); clearInterval(spawn); document.getElementById('heart-win').style.display = 'flex'; }
+                };
+                field.appendChild(h);
+                gsap.from(h, { scale: 0, duration: 0.3 });
+                setTimeout(() => h.remove(), 1200);
+            }, 600);
+        }
+
+        // --- Race Game ---
+        let rAttempt = 1; let pPos = 0; let bPos = 0; let racing = false; let rTimer;
+        function raceTap() {
+            if(!racing) startTheRace();
+            pPos += 3;
+            document.getElementById('player-v').style.bottom = pPos + '%';
+            playSfx(100 + pPos*2, 'sawtooth', 0.05);
+            checkRace();
+        }
+        function startTheRace() {
+            racing = true; pPos = 0; bPos = 0;
+            document.getElementById('race-lose').style.display = 'none';
+            rTimer = setInterval(() => {
+                let speed = (rAttempt < 3) ? 1.4 : 0.4;
+                bPos += speed;
+                document.getElementById('bot-v').style.bottom = bPos + '%';
+                checkRace();
+            }, 50);
+        }
+        function checkRace() {
+            const finish = 88;
+            if(pPos >= finish || bPos >= finish) {
+                clearInterval(rTimer); racing = false;
+                if(pPos >= finish) document.getElementById('race-win').style.display = 'flex';
+                else document.getElementById('race-lose').style.display = 'flex';
+            }
+        }
+        function resetRace() {
+            rAttempt++; pPos = 0; bPos = 0;
+            document.getElementById('r-attempt').innerText = rAttempt;
+            document.getElementById('player-v').style.bottom = '10px';
+            document.getElementById('bot-v').style.bottom = '10px';
+            document.getElementById('race-lose').style.display = 'none';
+        }
+
+        // --- Three.js ---
+        const scn = new THREE.Scene();
+        const cam = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const rnd = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas-3d'), alpha: true });
+        rnd.setSize(window.innerWidth, window.innerHeight);
+
+        const hearts = [];
+        const hShape = new THREE.Shape();
+        hShape.moveTo(0,0); hShape.bezierCurveTo(0,-0.3,-0.6,-0.3,-0.6,0); hShape.bezierCurveTo(-0.6,0.3,0,0.6,0,1); hShape.bezierCurveTo(0,0.6,0.6,0.3,0.6,0); hShape.bezierCurveTo(0.6,-0.3,0,-0.3,0,0);
+        const hGeo = new THREE.ExtrudeGeometry(hShape, { depth: 0.1, bevelEnabled: true, bevelSize: 0.05 });
+        const hMat = new THREE.MeshPhongMaterial({ color: 0xff2d55 });
+
+        for(let i=0; i<30; i++) {
+            const h = new THREE.Mesh(hGeo, hMat);
+            h.position.set(Math.random()*16-8, Math.random()*16-8, Math.random()*-15);
+            h.rotation.x = Math.PI; h.scale.set(0.5,0.5,0.5);
+            scn.add(h); hearts.push(h);
+        }
+        scn.add(new THREE.PointLight(0xffffff, 1, 100)); scn.add(new THREE.AmbientLight(0x444444, 2));
+        cam.position.z = 5;
+
+        function render() {
+            requestAnimationFrame(render);
+            hearts.forEach(h => { h.rotation.y += 0.01; h.position.y += Math.sin(Date.now()*0.001)*0.002; });
+            rnd.render(scn, cam);
+        }
+        render();
+
+        // --- Finale ---
+        function celebrate() {
+            playSfx(880, 'sine', 0.5);
+            document.getElementById('fin-btn').style.display = 'none';
+            const t = document.getElementById('finale-txt'); t.classList.remove('hidden');
+            gsap.to(t, { opacity: 1, scale: 1, duration: 1, ease: "back.out" });
+            const end = Date.now() + 8000;
+            (function frame() {
+                confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#ff2d55', '#ffffff'] });
+                confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#ff2d55', '#ffffff'] });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+            hearts.forEach(h => gsap.to(h.position, { y: 20, duration: 4 }));
+        }
+
+        window.addEventListener('resize', () => {
+            cam.aspect = window.innerWidth/window.innerHeight; cam.updateProjectionMatrix(); rnd.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
